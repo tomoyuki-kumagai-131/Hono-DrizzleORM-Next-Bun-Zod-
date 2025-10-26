@@ -4,6 +4,8 @@ import { serve } from '@hono/node-server';
 import authRoutes from './routes/auth';
 import tweetRoutes from './routes/tweets';
 import userRoutes from './routes/users';
+import bookmarkRoutes from './routes/bookmarks';
+import newsRoutes from './routes/news';
 
 const app = new Hono();
 
@@ -21,6 +23,8 @@ app.use('/*', cors({
 app.route('/api/auth', authRoutes);
 app.route('/api/tweets', tweetRoutes);
 app.route('/api/users', userRoutes);
+app.route('/api/bookmarks', bookmarkRoutes);
+app.route('/api/news', newsRoutes);
 
 app.get('/', (c) => {
   return c.json({ message: 'Twitter API with Hono' });

@@ -14,35 +14,57 @@ const createTweetSchema = z.object({
 // Get timeline (tweets from followed users + own tweets)
 app.get('/timeline', authMiddleware, async (c) => {
   const userId = c.get('userId');
+  const filter = c.req.query('filter') || 'all'; // 'all' or 'following'
 
-  // Get users that current user follows
-  const following = await db.query.follows.findMany({
-    where: eq(follows.followerId, userId),
-  });
+  let timelineTweets;
 
-  const followingIds = following.map(f => f.followingId);
-  const allUserIds = [...followingIds, userId];
+  if (filter === 'following') {
+    // Get users that current user follows
+    const following = await db.query.follows.findMany({
+      where: eq(follows.followerId, userId),
+    });
 
-  // Get tweets from followed users and self
-  const timelineTweets = await db.query.tweets.findMany({
-    where: allUserIds.length > 0 ? inArray(tweets.userId, allUserIds) : eq(tweets.userId, userId),
-    orderBy: [desc(tweets.createdAt)],
-    with: {
-      user: {
-        columns: {
-          password: false,
+    const followingIds = following.map(f => f.followingId);
+    const allUserIds = [...followingIds, userId];
+
+    // Get tweets from followed users and self
+    timelineTweets = await db.query.tweets.findMany({
+      where: allUserIds.length > 0 ? inArray(tweets.userId, allUserIds) : eq(tweets.userId, userId),
+      orderBy: [desc(tweets.createdAt)],
+      with: {
+        user: {
+          columns: {
+            password: false,
+          },
         },
+        likes: true,
+        bookmarks: true,
       },
-      likes: true,
-    },
-    limit: 50,
-  });
+      limit: 50,
+    });
+  } else {
+    // Get all tweets (For You)
+    timelineTweets = await db.query.tweets.findMany({
+      orderBy: [desc(tweets.createdAt)],
+      with: {
+        user: {
+          columns: {
+            password: false,
+          },
+        },
+        likes: true,
+        bookmarks: true,
+      },
+      limit: 50,
+    });
+  }
 
-  // Add like count and isLiked status
+  // Add like count, isLiked, and isBookmarked status
   const tweetsWithMeta = timelineTweets.map(tweet => ({
     ...tweet,
     likeCount: tweet.likes.length,
     isLiked: tweet.likes.some(like => like.userId === userId),
+    isBookmarked: tweet.bookmarks.some(bookmark => bookmark.userId === userId),
   }));
 
   return c.json(tweetsWithMeta);

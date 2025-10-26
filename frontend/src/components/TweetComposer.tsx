@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import { createTweet } from '@/lib/api';
 import { Tweet } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Send } from 'lucide-react';
 
 interface TweetComposerProps {
   onTweetCreated: (tweet: Tweet) => void;
@@ -28,26 +32,45 @@ export default function TweetComposer({ onTweetCreated }: TweetComposerProps) {
     }
   };
 
+  const remaining = 280 - content.length;
+  const isOverLimit = remaining < 0;
+
   return (
-    <div className="bg-white border-b border-gray-200 p-4">
-      <form onSubmit={handleSubmit}>
-        <textarea
+    <div className="bg-gradient-to-b from-card to-card/50 border-b p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="What's happening?"
-          maxLength={280}
+          maxLength={300}
           rows={3}
-          className="w-full p-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-black"
+          className="resize-none text-base focus-visible:ring-primary bg-background"
         />
-        <div className="flex justify-between items-center mt-3">
-          <span className="text-sm text-gray-500">{content.length}/280</span>
-          <button
-            type="submit"
-            disabled={loading || !content.trim()}
-            className="bg-blue-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="flex justify-between items-center">
+          <Badge
+            variant={isOverLimit ? "destructive" : remaining < 20 ? "secondary" : "outline"}
+            className="font-mono"
           >
-            {loading ? 'Posting...' : 'Tweet'}
-          </button>
+            {remaining}
+          </Badge>
+          <Button
+            type="submit"
+            disabled={loading || !content.trim() || isOverLimit}
+            size="default"
+            className="rounded-full"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Posting...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Tweet
+              </>
+            )}
+          </Button>
         </div>
       </form>
     </div>

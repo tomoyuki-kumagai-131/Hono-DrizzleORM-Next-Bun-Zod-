@@ -21,6 +21,7 @@ export interface Tweet {
   likes: Like[];
   likeCount: number;
   isLiked: boolean;
+  isBookmarked?: boolean;
 }
 
 export interface Like {

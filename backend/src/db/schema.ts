@@ -63,6 +63,27 @@ export const likes = sqliteTable('likes', {
 
 /**
  * ===========================
+ * BOOKMARKS TABLE（ブックマーク）
+ * ===========================
+ * - ユーザーがツイートをブックマークした履歴を管理
+ * - userId: 誰が
+ * - tweetId: どのツイートを
+ */
+export const bookmarks = sqliteTable('bookmarks', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	userId: integer('user_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }), // ユーザー削除時に関連bookmarkも削除
+	tweetId: integer('tweet_id')
+		.notNull()
+		.references(() => tweets.id, { onDelete: 'cascade' }), // 投稿削除時にbookmarkも削除
+	createdAt: integer('created_at', { mode: 'timestamp' })
+		.notNull()
+		.$defaultFn(() => new Date()), // ブックマークした日時
+});
+
+/**
+ * ===========================
  * FOLLOWS TABLE（フォロー関係）
  * ===========================
  * - followerId: フォローする側
@@ -89,21 +110,23 @@ export const follows = sqliteTable('follows', {
  * Drizzle ORM の relations() を用いて、双方向の関連を定義
  */
 
-/** User ←→ Tweet / Like / Follow */
+/** User ←→ Tweet / Like / Bookmark / Follow */
 export const usersRelations = relations(users, ({ many }) => ({
 	tweets: many(tweets), // ユーザーが投稿したツイート
 	likes: many(likes), // ユーザーが「いいね」した一覧
+	bookmarks: many(bookmarks), // ユーザーがブックマークした一覧
 	followers: many(follows, { relationName: 'following' }), // このユーザーをフォローしている人
 	following: many(follows, { relationName: 'follower' }), // このユーザーがフォローしている人
 }));
 
-/** Tweet ←→ User / Like */
+/** Tweet ←→ User / Like / Bookmark */
 export const tweetsRelations = relations(tweets, ({ one, many }) => ({
 	user: one(users, {
 		fields: [tweets.userId],
 		references: [users.id],
 	}), // 投稿者情報
 	likes: many(likes), // このツイートについたいいね一覧
+	bookmarks: many(bookmarks), // このツイートについたブックマーク一覧
 }));
 
 /** Like ←→ User / Tweet */
@@ -116,6 +139,18 @@ export const likesRelations = relations(likes, ({ one }) => ({
 		fields: [likes.tweetId],
 		references: [tweets.id],
 	}), // いいねされたツイート
+}));
+
+/** Bookmark ←→ User / Tweet */
+export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
+	user: one(users, {
+		fields: [bookmarks.userId],
+		references: [users.id],
+	}), // ブックマークしたユーザー
+	tweet: one(tweets, {
+		fields: [bookmarks.tweetId],
+		references: [tweets.id],
+	}), // ブックマークされたツイート
 }));
 
 /** Follow ←→ User */

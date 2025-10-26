@@ -69,8 +69,8 @@ export const unfollowUser = async (username: string): Promise<void> => {
 };
 
 // Tweets
-export const getTimeline = async (): Promise<Tweet[]> => {
-  const response = await api.get('/tweets/timeline');
+export const getTimeline = async (filter: 'all' | 'following' = 'all'): Promise<Tweet[]> => {
+  const response = await api.get(`/tweets/timeline?filter=${filter}`);
   return response.data;
 };
 
@@ -89,4 +89,24 @@ export const likeTweet = async (id: number): Promise<void> => {
 
 export const unlikeTweet = async (id: number): Promise<void> => {
   await api.delete(`/tweets/${id}/like`);
+};
+
+// User Search
+export const searchUsers = async (query: string): Promise<User[]> => {
+  const response = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
+  return response.data;
+};
+
+// Bookmarks
+export const getBookmarks = async (): Promise<Tweet[]> => {
+  const response = await api.get('/bookmarks');
+  return response.data;
+};
+
+export const bookmarkTweet = async (id: number): Promise<void> => {
+  await api.post(`/bookmarks/${id}`);
+};
+
+export const unbookmarkTweet = async (id: number): Promise<void> => {
+  await api.delete(`/bookmarks/${id}`);
 };
