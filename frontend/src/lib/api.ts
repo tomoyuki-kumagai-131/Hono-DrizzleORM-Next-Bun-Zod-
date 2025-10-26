@@ -8,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 // Add token to requests
@@ -35,6 +36,11 @@ export const login = async (data: {
   password: string;
 }): Promise<AuthResponse> => {
   const response = await api.post('/auth/login', data);
+  return response.data;
+};
+
+export const googleAuth = async (credential: string): Promise<AuthResponse> => {
+  const response = await api.post('/auth/google', { credential });
   return response.data;
 };
 

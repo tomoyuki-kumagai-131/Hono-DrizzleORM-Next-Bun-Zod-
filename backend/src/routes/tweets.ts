@@ -111,7 +111,7 @@ app.get('/:id', async (c) => {
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const { verifyToken } = await import('../utils/auth');
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     userId = payload?.userId;
   }
 

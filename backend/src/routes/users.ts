@@ -60,7 +60,7 @@ app.get('/:username', async (c) => {
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const { verifyToken } = await import('../utils/auth');
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     if (payload) {
       const follow = await db.query.follows.findFirst({
         where: and(
@@ -113,7 +113,7 @@ app.get('/:username/tweets', async (c) => {
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const { verifyToken } = await import('../utils/auth');
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     userId = payload?.userId;
   }
 
