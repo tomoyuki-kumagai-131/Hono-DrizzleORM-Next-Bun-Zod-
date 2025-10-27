@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { db } from '../db';
-import { tweets, likes, follows, users } from '../db/schema';
+import { tweets, likes, follows, users, notifications } from '../db/schema';
 import { authMiddleware } from '../middleware/auth';
-import { eq, desc, and, inArray, sql } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql, like } from 'drizzle-orm';
 
 const app = new Hono();
 
@@ -107,6 +107,41 @@ app.post('/', authMiddleware, async (c) => {
   }
 });
 
+// Search tweets
+app.get('/search', authMiddleware, async (c) => {
+  const query = c.req.query('q');
+  const userId = c.get('userId');
+
+  if (!query || query.trim() === '') {
+    return c.json({ error: 'Search query is required' }, 400);
+  }
+
+  const searchResults = await db.query.tweets.findMany({
+    where: like(tweets.content, `%${query}%`),
+    orderBy: [desc(tweets.createdAt)],
+    with: {
+      user: {
+        columns: {
+          password: false,
+        },
+      },
+      likes: true,
+      bookmarks: true,
+    },
+    limit: 50,
+  });
+
+  // Add like count, isLiked, and isBookmarked status
+  const tweetsWithMeta = searchResults.map(tweet => ({
+    ...tweet,
+    likeCount: tweet.likes.length,
+    isLiked: tweet.likes.some(like => like.userId === userId),
+    isBookmarked: tweet.bookmarks.some(bookmark => bookmark.userId === userId),
+  }));
+
+  return c.json(tweetsWithMeta);
+});
+
 // Get a specific tweet
 app.get('/:id', async (c) => {
   const id = parseInt(c.req.param('id'));
@@ -192,6 +227,16 @@ app.post('/:id/like', authMiddleware, async (c) => {
     userId,
     tweetId,
   });
+
+  // Create notification if user is not liking their own tweet
+  if (tweet.userId !== userId) {
+    await db.insert(notifications).values({
+      type: 'like',
+      userId: tweet.userId, // Tweet owner receives the notification
+      actorId: userId, // User who liked
+      tweetId: tweetId,
+    });
+  }
 
   return c.json({ message: 'Tweet liked' });
 });

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, User, Tweet } from '@/types';
+import { AuthResponse, User, Tweet, Notification } from '@/types';
 
 const API_URL = 'http://localhost:4000/api';
 
@@ -97,6 +97,12 @@ export const searchUsers = async (query: string): Promise<User[]> => {
   return response.data;
 };
 
+// Tweet Search
+export const searchTweets = async (query: string): Promise<Tweet[]> => {
+  const response = await api.get(`/tweets/search?q=${encodeURIComponent(query)}`);
+  return response.data;
+};
+
 // Bookmarks
 export const getBookmarks = async (): Promise<Tweet[]> => {
   const response = await api.get('/bookmarks');
@@ -109,4 +115,23 @@ export const bookmarkTweet = async (id: number): Promise<void> => {
 
 export const unbookmarkTweet = async (id: number): Promise<void> => {
   await api.delete(`/bookmarks/${id}`);
+};
+
+// Notifications
+export const getNotifications = async (): Promise<Notification[]> => {
+  const response = await api.get('/notifications');
+  return response.data;
+};
+
+export const getUnreadCount = async (): Promise<number> => {
+  const response = await api.get('/notifications/unread-count');
+  return response.data.count;
+};
+
+export const markNotificationAsRead = async (id: number): Promise<void> => {
+  await api.put(`/notifications/${id}/read`);
+};
+
+export const markAllNotificationsAsRead = async (): Promise<void> => {
+  await api.put('/notifications/read-all');
 };

@@ -105,18 +105,48 @@ export const follows = sqliteTable('follows', {
 
 /**
  * ===========================
+ * NOTIFICATIONS TABLE（通知）
+ * ===========================
+ * - type: 通知タイプ（like, follow）
+ * - userId: 通知を受け取るユーザー
+ * - actorId: 通知を発生させたユーザー
+ * - tweetId: 関連するツイート（likeの場合）
+ * - read: 既読フラグ
+ */
+export const notifications = sqliteTable('notifications', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	type: text('type').notNull(), // 'like' or 'follow'
+	userId: integer('user_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }), // 通知を受け取るユーザー
+	actorId: integer('actor_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }), // アクションを起こしたユーザー
+	tweetId: integer('tweet_id').references(() => tweets.id, {
+		onDelete: 'cascade',
+	}), // 関連ツイート（likeの場合のみ）
+	read: integer('read', { mode: 'boolean' }).notNull().default(false), // 既読フラグ
+	createdAt: integer('created_at', { mode: 'timestamp' })
+		.notNull()
+		.$defaultFn(() => new Date()), // 通知日時
+});
+
+/**
+ * ===========================
  * RELATIONS（リレーション定義）
  * ===========================
  * Drizzle ORM の relations() を用いて、双方向の関連を定義
  */
 
-/** User ←→ Tweet / Like / Bookmark / Follow */
+/** User ←→ Tweet / Like / Bookmark / Follow / Notification */
 export const usersRelations = relations(users, ({ many }) => ({
 	tweets: many(tweets), // ユーザーが投稿したツイート
 	likes: many(likes), // ユーザーが「いいね」した一覧
 	bookmarks: many(bookmarks), // ユーザーがブックマークした一覧
 	followers: many(follows, { relationName: 'following' }), // このユーザーをフォローしている人
 	following: many(follows, { relationName: 'follower' }), // このユーザーがフォローしている人
+	notifications: many(notifications, { relationName: 'recipient' }), // このユーザーが受け取った通知
+	triggeredNotifications: many(notifications, { relationName: 'actor' }), // このユーザーが発生させた通知
 }));
 
 /** Tweet ←→ User / Like / Bookmark */
@@ -165,4 +195,22 @@ export const followsRelations = relations(follows, ({ one }) => ({
 		references: [users.id],
 		relationName: 'following',
 	}), // フォローされるユーザー
+}));
+
+/** Notification ←→ User / Tweet */
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+	user: one(users, {
+		fields: [notifications.userId],
+		references: [users.id],
+		relationName: 'recipient',
+	}), // 通知を受け取るユーザー
+	actor: one(users, {
+		fields: [notifications.actorId],
+		references: [users.id],
+		relationName: 'actor',
+	}), // 通知を発生させたユーザー
+	tweet: one(tweets, {
+		fields: [notifications.tweetId],
+		references: [tweets.id],
+	}), // 関連するツイート
 }));

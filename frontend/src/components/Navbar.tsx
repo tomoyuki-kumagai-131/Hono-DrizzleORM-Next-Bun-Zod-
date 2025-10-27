@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Search, Bookmark, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import NotificationsDropdown from '@/components/NotificationsDropdown';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -35,6 +36,8 @@ export default function Navbar() {
                   <span className="hidden sm:inline">Search</span>
                 </Link>
               </Button>
+
+              <NotificationsDropdown />
 
               <Button variant="ghost" size="sm" asChild className="rounded-full">
                 <Link href="/bookmarks" className="flex items-center gap-2">

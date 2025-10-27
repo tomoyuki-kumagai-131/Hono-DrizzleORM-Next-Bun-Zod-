@@ -35,3 +35,15 @@ export interface AuthResponse {
   user: User;
   token: string;
 }
+
+export interface Notification {
+  id: number;
+  type: 'like' | 'follow';
+  userId: number;
+  actorId: number;
+  tweetId?: number | null;
+  read: boolean;
+  createdAt: Date;
+  actor: User;
+  tweet?: Tweet | null;
+}

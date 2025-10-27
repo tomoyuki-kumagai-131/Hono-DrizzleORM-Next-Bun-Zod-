@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db';
-import { users, tweets, follows, likes } from '../db/schema';
+import { users, tweets, follows, likes, notifications } from '../db/schema';
 import { authMiddleware } from '../middleware/auth';
 import { eq, and, desc, sql, or, like } from 'drizzle-orm';
 
@@ -32,6 +32,44 @@ app.get('/me', authMiddleware, async (c) => {
     followingCount,
     tweetCount,
   });
+});
+
+// Search users
+app.get('/search', async (c) => {
+  const query = c.req.query('q');
+
+  if (!query || query.trim() === '') {
+    return c.json({ error: 'Search query is required' }, 400);
+  }
+
+  const searchResults = await db.query.users.findMany({
+    where: or(
+      like(users.username, `%${query}%`),
+      like(users.displayName, `%${query}%`)
+    ),
+    columns: {
+      password: false,
+    },
+    limit: 20,
+  });
+
+  // Get follower and following counts for each user
+  const usersWithCounts = await Promise.all(
+    searchResults.map(async (user) => {
+      const followerCount = await db.$count(follows, eq(follows.followingId, user.id));
+      const followingCount = await db.$count(follows, eq(follows.followerId, user.id));
+      const tweetCount = await db.$count(tweets, eq(tweets.userId, user.id));
+
+      return {
+        ...user,
+        followerCount,
+        followingCount,
+        tweetCount,
+      };
+    })
+  );
+
+  return c.json(usersWithCounts);
 });
 
 // Get user profile by username
@@ -160,6 +198,13 @@ app.post('/:username/follow', authMiddleware, async (c) => {
     followingId: userToFollow.id,
   });
 
+  // Create notification for the followed user
+  await db.insert(notifications).values({
+    type: 'follow',
+    userId: userToFollow.id, // User being followed receives notification
+    actorId: userId, // User who followed
+  });
+
   return c.json({ message: 'User followed' });
 });
 
@@ -195,44 +240,6 @@ app.delete('/:username/follow', authMiddleware, async (c) => {
   );
 
   return c.json({ message: 'User unfollowed' });
-});
-
-// Search users
-app.get('/search', async (c) => {
-  const query = c.req.query('q');
-
-  if (!query || query.trim() === '') {
-    return c.json({ error: 'Search query is required' }, 400);
-  }
-
-  const searchResults = await db.query.users.findMany({
-    where: or(
-      like(users.username, `%${query}%`),
-      like(users.displayName, `%${query}%`)
-    ),
-    columns: {
-      password: false,
-    },
-    limit: 20,
-  });
-
-  // Get follower and following counts for each user
-  const usersWithCounts = await Promise.all(
-    searchResults.map(async (user) => {
-      const followerCount = await db.$count(follows, eq(follows.followingId, user.id));
-      const followingCount = await db.$count(follows, eq(follows.followerId, user.id));
-      const tweetCount = await db.$count(tweets, eq(tweets.userId, user.id));
-
-      return {
-        ...user,
-        followerCount,
-        followingCount,
-        tweetCount,
-      };
-    })
-  );
-
-  return c.json(usersWithCounts);
 });
 
 export default app;

@@ -6,6 +6,8 @@ import tweetRoutes from './routes/tweets';
 import userRoutes from './routes/users';
 import bookmarkRoutes from './routes/bookmarks';
 import newsRoutes from './routes/news';
+import trendingRoutes from './routes/trending';
+import notificationRoutes from './routes/notifications';
 
 const app = new Hono();
 
@@ -25,6 +27,8 @@ app.route('/api/tweets', tweetRoutes);
 app.route('/api/users', userRoutes);
 app.route('/api/bookmarks', bookmarkRoutes);
 app.route('/api/news', newsRoutes);
+app.route('/api/trending', trendingRoutes);
+app.route('/api/notifications', notificationRoutes);
 
 app.get('/', (c) => {
   return c.json({ message: 'Twitter API with Hono' });
