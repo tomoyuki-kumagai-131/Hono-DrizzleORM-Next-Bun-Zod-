@@ -1,6 +1,6 @@
-# Twitter Clone
+# SNSアプリケーション
 
-Hono と Next.js で構築された Twitter クローンアプリケーション
+Hono と Next.js で構築されたSNS型アプリケーション
 
 ## 機能
 
